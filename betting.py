@@ -10,7 +10,7 @@ import random
 def predict_weighted_player_stat(player_name, stat, opponent_team, n_estimators=200, simulations=25, weight_recent=1.5, defense_weight=0.5):
     player = [p for p in players.get_players() if p['full_name'] == player_name][0]
     player_id = player['id']
-    player_games = PlayerGameLog(player_id=player_id, season="2023-24", season_type_all_star="Regular Season").get_data_frames()[0]
+    player_games = PlayerGameLog(player_id=player_id, season="2024-25", season_type_all_star="Regular Season").get_data_frames()[0]
     
     # Ensure sorting is done correctly to get the full season stats
     player_games = player_games.sort_values(by='GAME_DATE', ascending=False)
@@ -33,7 +33,7 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, n_estimators=
     # Adjust for opponent defensive impact (can be positive or negative)
     opponent = [t for t in teams.get_teams() if t['full_name'] == opponent_team][0]
     opponent_id = opponent['id']
-    opponent_games = TeamGameLog(team_id=opponent_id, season="2023-24", season_type_all_star="Regular Season").get_data_frames()[0]
+    opponent_games = TeamGameLog(team_id=opponent_id, season="2024-25", season_type_all_star="Regular Season").get_data_frames()[0]
     
     defensive_rating = opponent_games['PTS'].mean()  # Approximate defensive impact
     steals_per_game = opponent_games['STL'].mean()
@@ -61,20 +61,3 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, n_estimators=
     
     return np.mean(simulation_results)  # Return average of simulations
 
-# Main function to execute predictions
-def main():
-    # Predict Stephen Curry's points (vs Nets)
-    predicted_curry_points = predict_weighted_player_stat("Stephen Curry", "PTS", "Brooklyn Nets")
-    print(f"Predicted Points for Stephen Curry vs. Nets: {predicted_curry_points:.2f}")
-
-    # Predict Luka Dončić's points (now on Lakers, vs Knicks)
-    predicted_luka_points = predict_weighted_player_stat("Luka Dončić", "PTS", "New York Knicks")
-    print(f"Predicted Points for Luka Dončić vs. Knicks: {predicted_luka_points:.2f}")
-
-    # Predict LeBron James' points (vs Knicks)
-    predicted_lebron_points = predict_weighted_player_stat("LeBron James", "PTS", "New York Knicks")
-    print(f"Predicted Points for LeBron James vs. Knicks: {predicted_lebron_points:.2f}")
-
-
-if __name__ == "__main__":
-    main()
