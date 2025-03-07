@@ -7,7 +7,7 @@ from nba_api.stats.static import players, teams
 import random
 
 # Function to predict player stats using full season stats with added weight for last 5 games and adjusted defensive impact
-def predict_weighted_player_stat(player_name, stat, opponent_team, n_estimators=200, simulations=25, weight_recent=1.5, defense_weight=0.5):
+def predict_weighted_player_stat(player_name, stat, opponent_team, n_estimators=200, simulations=25, weight_recent=1.2, defense_weight=0.7):
     player = [p for p in players.get_players() if p['full_name'] == player_name][0]
     player_id = player['id']
     player_games = PlayerGameLog(player_id=player_id, season="2024-25", season_type_all_star="Regular Season").get_data_frames()[0]
