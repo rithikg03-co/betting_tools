@@ -4,23 +4,24 @@ import betting  # Import the betting module
 
 # Function to fetch prediction from betting.py
 def get_prediction():
+    global result_label
     player_name = player_entry.get()
     stat = stat_entry.get()
     opponent_team = team_entry.get()
     
     if not player_name or not stat or not opponent_team:
-        result_label.config(text="Please fill in all fields.", fg="red")
+        result_label.config(text="Please fill in all fields.", foreground="red")
         return
     
     try:
         prediction = betting.predict_weighted_player_stat(player_name, stat, opponent_team)
         result_list.insert(0, f"{player_name} ({stat}) vs. {opponent_team}: {prediction:.2f}")  # Insert at top
     except Exception as e:
-        result_label.config(text=f"Error: {str(e)}", fg="red")
+        result_label.config(text=f"Error: {str(e)}", foreground="red")
 
 # Function to initialize the GUI
 def main():
-    global root, player_entry, stat_entry, team_entry, result_list
+    global root, player_entry, stat_entry, team_entry, result_list, result_label
     root = tk.Tk()
     root.title("NBA Player Stat Predictor")
     root.geometry("450x400")
@@ -53,6 +54,10 @@ def main():
     ttk.Label(root, text="Prediction History:").pack(pady=5)
     result_list = tk.Listbox(root, height=10, width=50, font=("Arial", 10))
     result_list.pack(pady=5)
+
+    # Define result_label
+    result_label = ttk.Label(root, text="", font=("Arial", 12), background="#2C3E50", foreground="white")
+    result_label.pack(pady=10)
 
     root.mainloop()
 
