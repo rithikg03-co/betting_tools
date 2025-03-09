@@ -68,7 +68,7 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_
     
     # Adjust for opponent defensive impact considering home/away differences
     home_defense, away_defense = get_opponent_home_away_defense(opponent_team)
-    opponent_defensive_stats = away_defense if home_game else home_defense  # Corrected logic
+    opponent_defensive_stats = home_defense if home_game else away_defense
     
     defense_adjustment = 1 + defense_weight * ((110 - opponent_defensive_stats['PTS']) / 120)
     defense_adjustment = max(0.9, min(1.1, defense_adjustment))  # Clamp adjustment
@@ -76,7 +76,7 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_
     # Adjust for player home vs away performance
     home_stats, away_stats = get_player_home_away_stats(player_name)
     home_away_adjustment = (home_stats[stat] / away_stats[stat]) if home_game else (away_stats[stat] / home_stats[stat])
-    home_away_adjustment = max(1.0, min(1.1, home_away_adjustment))  # Ensuring home advantage is always positive
+    home_away_adjustment = max(0.95, min(1.1, home_away_adjustment))  # Ensure realistic home advantage
     
     simulation_results = []
     for _ in range(simulations):
@@ -94,4 +94,4 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_
         
         simulation_results.append(predicted_stat)
     
-    return np.mean(simulation_results)
+    return np.mean(simulation_results), simulation_results
