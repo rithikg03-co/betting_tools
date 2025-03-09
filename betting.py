@@ -89,8 +89,8 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_
         game_variance = random.random()
         if game_variance < 0.15:
             predicted_stat *= random.uniform(1.2, 1.4)
-        elif game_variance < 0.07:
-            predicted_stat *= random.uniform(0.6, 0.8)
+        elif game_variance < 0.25 and game_variance > 0.15:
+            predicted_stat *= random.uniform(0.7, 0.85)
         
         simulation_results.append(predicted_stat)
     
