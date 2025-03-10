@@ -14,6 +14,40 @@ class NBAStatPredictorApp:
         self.root.geometry("1200x800")
         self.root.minsize(1000, 700)
         
+        # NBA team abbreviations to full names mapping
+        self.team_mapping = {
+            "ATL": "Atlanta Hawks",
+            "BOS": "Boston Celtics",
+            "BKN": "Brooklyn Nets",
+            "CHA": "Charlotte Hornets",
+            "CHI": "Chicago Bulls",
+            "CLE": "Cleveland Cavaliers",
+            "DAL": "Dallas Mavericks",
+            "DEN": "Denver Nuggets",
+            "DET": "Detroit Pistons",
+            "GSW": "Golden State Warriors",
+            "HOU": "Houston Rockets",
+            "IND": "Indiana Pacers",
+            "LAC": "Los Angeles Clippers",
+            "LAL": "Los Angeles Lakers",
+            "MEM": "Memphis Grizzlies",
+            "MIA": "Miami Heat",
+            "MIL": "Milwaukee Bucks",
+            "MIN": "Minnesota Timberwolves",
+            "NOP": "New Orleans Pelicans",
+            "NYK": "New York Knicks",
+            "OKC": "Oklahoma City Thunder",
+            "ORL": "Orlando Magic",
+            "PHI": "Philadelphia 76ers",
+            "PHX": "Phoenix Suns",
+            "POR": "Portland Trail Blazers",
+            "SAC": "Sacramento Kings",
+            "SAS": "San Antonio Spurs",
+            "TOR": "Toronto Raptors",
+            "UTA": "Utah Jazz",
+            "WAS": "Washington Wizards"
+        }
+        
         # Set theme colors - Light theme
         self.colors = {
             "bg_white": "#FFFFFF",
@@ -148,10 +182,13 @@ class NBAStatPredictorApp:
         self.stat_combo = ttk.Combobox(self.input_inner_frame, textvariable=self.stat_var, values=stat_options, state="readonly")
         self.stat_combo.pack(fill=tk.X, pady=(0, 10))
         
-        # Team name input
+        # Team name dropdown (changed from entry to combobox)
         ttk.Label(self.input_inner_frame, text="Opponent Team:", background=self.colors["bg_light"]).pack(anchor=tk.W, pady=(10, 5))
-        self.team_entry = ttk.Entry(self.input_inner_frame, width=30)
-        self.team_entry.pack(fill=tk.X, pady=(0, 10))
+        self.team_var = tk.StringVar()
+        # NBA team abbreviations
+        team_options = sorted(list(self.team_mapping.keys()))
+        self.team_combo = ttk.Combobox(self.input_inner_frame, textvariable=self.team_var, values=team_options, state="readonly")
+        self.team_combo.pack(fill=tk.X, pady=(0, 10))
         
         # Game location
         ttk.Label(self.input_inner_frame, text="Game Location:", background=self.colors["bg_light"]).pack(anchor=tk.W, pady=(10, 5))
@@ -281,11 +318,11 @@ class NBAStatPredictorApp:
         """Start the prediction process with a loading bar"""
         player_name = self.player_entry.get().strip()
         stat = self.stat_var.get() if self.stat_var.get() else self.stat_combo.get()
-        opponent_team = self.team_entry.get().strip()
+        team_abbrev = self.team_var.get()  # Get from combobox variable
         home_game = self.home_var.get() == "Home"
         
         # Validate inputs
-        if not player_name or not stat or not opponent_team:
+        if not player_name or not stat or not team_abbrev:
             self.status_label.configure(
                 text="Error: Please fill in all required fields.", 
                 foreground=self.colors["error"]
@@ -307,7 +344,7 @@ class NBAStatPredictorApp:
         
         # Start the prediction process in a separate method
         # This allows us to update the progress bar
-        self.root.after(50, lambda: self.run_prediction(player_name, stat, opponent_team, home_game))
+        self.root.after(50, lambda: self.run_prediction(player_name, stat, team_abbrev, home_game))
         
     def update_progress(self, value, text=None):
         """Update the progress bar and label"""
@@ -318,16 +355,13 @@ class NBAStatPredictorApp:
             self.progress_label.configure(text=f"{int(value)}%")
         self.root.update_idletasks()
         
-    def run_prediction(self, player_name, stat, opponent_team, home_game):
+    def run_prediction(self, player_name, stat, team_abbrev, home_game):
         """Run the prediction with progress updates"""
         try:
-            # Here we'd normally call betting.predict_weighted_player_stat directly
-            # But to show progress, we'll simulate steps of the process
+            # Convert team abbreviation to full name
+            team_full_name = self.team_mapping.get(team_abbrev, team_abbrev)
             
-            # For a real implementation, you might need to modify the betting module
-            # to report progress as it runs simulations
-            
-            # This is a simulation to show progress - replace with actual prediction code
+            # Simulate loading steps with progress updates
             self.update_progress(10, "Loading player data...")
             self.root.after(200)  # Simulate processing time
             
@@ -343,20 +377,15 @@ class NBAStatPredictorApp:
             self.update_progress(90, "Finalizing prediction...")
             self.root.after(200)
             
-            # Here's where we'd actually call the prediction function:
-            try:
-                prediction_mean, predictions = betting.predict_weighted_player_stat(player_name, stat, opponent_team, home_game)
-            except:
-                # If the betting module isn't available, use dummy data for demo purposes
-                prediction_mean = 20.5 + np.random.normal(0, 3)
-                predictions = [prediction_mean + np.random.normal(0, 2) for _ in range(20)]
+            # Call the prediction function with the full team name
+            prediction_mean, predictions = betting.predict_weighted_player_stat(player_name, stat, team_full_name, home_game)
             
             # Complete the progress
             self.update_progress(100, "Complete!")
             
             # Format the result
             location_text = "Home" if home_game else "Away"
-            result_text = f"{player_name} vs {opponent_team} ({location_text}): {prediction_mean:.1f} {stat}"
+            result_text = f"{player_name} vs {team_abbrev} ({location_text}): {prediction_mean:.1f} {stat}"
             
             # Add to history list with timestamp
             import datetime
@@ -364,7 +393,7 @@ class NBAStatPredictorApp:
             self.result_list.insert(0, f"[{timestamp}] {result_text}")
             
             # Plot the results
-            self.plot_simulation_results(predictions, player_name, stat, opponent_team, home_game)
+            self.plot_simulation_results(predictions, player_name, stat, team_abbrev, home_game)
             
             # Update status
             self.status_label.configure(
@@ -378,11 +407,49 @@ class NBAStatPredictorApp:
                 text=f"Error: {str(e)}", 
                 foreground=self.colors["error"]
             )
+            
+            # For debugging purposes, we'll also print the full exception details
+            import traceback
+            print("Exception in prediction function:")
+            print(traceback.format_exc())
+            
+            # Create fallback simulation data if there's an error with the prediction module
+            try:
+                prediction_mean = 20.5 + np.random.normal(0, 3)
+                predictions = [prediction_mean + np.random.normal(0, 2) for _ in range(20)]
+                
+                # Log that we're using fallback data
+                print("Using fallback simulation data.")
+                
+                # Complete the progress
+                self.update_progress(100, "Complete (using demo data)")
+                
+                # Format the result
+                location_text = "Home" if home_game else "Away"
+                result_text = f"{player_name} vs {team_abbrev} ({location_text}): {prediction_mean:.1f} {stat} (DEMO)"
+                
+                # Add to history list with timestamp
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                self.result_list.insert(0, f"[{timestamp}] {result_text}")
+                
+                # Plot the results
+                self.plot_simulation_results(predictions, player_name, stat, team_abbrev, home_game)
+                
+                # Update status
+                self.status_label.configure(
+                    text=f"Demo prediction complete: {result_text}", 
+                    foreground=self.colors["warning"]
+                )
+            except:
+                # If even the fallback fails, just log it
+                print("Fallback simulation also failed.")
+                
         finally:
             # Re-enable button
             self.predict_button.configure(state="normal")
             
-    def plot_simulation_results(self, predictions, player_name, stat, opponent_team, home_game):
+    def plot_simulation_results(self, predictions, player_name, stat, team_abbrev, home_game):
         # Clear previous plot
         self.ax.clear()
         
@@ -411,7 +478,7 @@ class NBAStatPredictorApp:
         
         # Plot customization
         location_text = "Home" if home_game else "Away"
-        self.ax.set_title(f"{player_name}: {stat} vs {opponent_team} ({location_text})", 
+        self.ax.set_title(f"{player_name}: {stat} vs {team_abbrev} ({location_text})", 
                          color=self.colors["text"], fontsize=12, fontweight='bold')
         self.ax.set_xlabel("Simulation Number", color=self.colors["text_secondary"])
         self.ax.set_ylabel(stat, color=self.colors["text_secondary"])
