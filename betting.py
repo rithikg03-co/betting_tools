@@ -47,7 +47,7 @@ def get_opponent_home_away_defense(opponent_team, season='2024-25'):
     return home_defense, away_defense
 
 # Function to predict player stats with weighted recent games and improved defensive & home/away impact
-def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_estimators=200, simulations=25, weight_recent=1.2, defense_weight=0.7):
+def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_estimators=200, simulations=100, weight_recent=1.2, defense_weight=0.7):
     player = [p for p in players.get_players() if p['full_name'].lower() == player_name.lower()]
     if not player:
         raise ValueError(f"Player {player_name} not found.")
@@ -90,7 +90,7 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_
         if game_variance < 0.15:
             predicted_stat *= random.uniform(1.2, 1.4)
         elif game_variance < 0.25 and game_variance > 0.15:
-            predicted_stat *= random.uniform(0.5, 0.75)
+            predicted_stat *= random.uniform(0.6, 0.8)
         
         simulation_results.append(predicted_stat)
     
