@@ -58,6 +58,8 @@ class NBAStatPredictorApp:
             "text": "#212121",
             "text_secondary": "#757575",
             "success": "#4CAF50",
+            "realistic_high": "#15E8E1",
+            "realistic_low": "#E81915",
             "warning": "#FF9800",
             "error": "#F44336",
             "button_text": "#000000",  # Black text for buttons
@@ -461,10 +463,14 @@ class NBAStatPredictorApp:
         mean_val = np.mean(predictions)
         max_val = np.max(predictions)
         min_val = np.min(predictions)
+        realistic_high_val = np.percentile(predictions, 90)
+        realistic_low_val = np.percentile(predictions, 5)
         
-        # Add a horizontal line for the mean
+        # Add a horizontal lines for the mean, realistic high and low values
         self.ax.axhline(y=mean_val, color=self.colors["success"], linestyle='--', alpha=0.8)
-        
+        self.ax.axhline(y=realistic_high_val, color=self.colors["realistic_high"], linestyle='--', alpha=0.8)
+        self.ax.axhline(y=realistic_low_val, color=self.colors["realistic_low"], linestyle='--', alpha=0.8)
+
         # Add annotation for mean
         self.ax.annotate(
             f'Mean: {mean_val:.1f}', 
@@ -472,6 +478,28 @@ class NBAStatPredictorApp:
             xytext=(5, 5),
             textcoords='offset points',
             color=self.colors["success"],
+            fontsize=9,
+            fontweight='bold'
+        )
+
+        # Add annotation for realistic high
+        self.ax.annotate(
+            f'Realistic High: {realistic_high_val:.1f}', 
+            xy=(len(predictions)*0.8, realistic_high_val),
+            xytext=(5, 5),
+            textcoords='offset points',
+            color=self.colors["realistic_high"],
+            fontsize=9,
+            fontweight='bold'
+        )
+
+        # Add annotation for realistic low
+        self.ax.annotate(
+            f'Realistic Low: {realistic_low_val:.1f}', 
+            xy=(len(predictions)*0.8, realistic_low_val),
+            xytext=(5, 5),
+            textcoords='offset points',
+            color=self.colors["realistic_low"],
             fontsize=9,
             fontweight='bold'
         )
