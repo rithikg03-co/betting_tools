@@ -48,6 +48,9 @@ class NBAStatPredictorApp:
             "WAS": "Washington Wizards"
         }
         
+        # Store historical predictions with all data needed to recreate plots
+        self.prediction_history = []
+        
         # Set theme colors - Light theme
         self.colors = {
             "bg_white": "#FFFFFF",
@@ -241,11 +244,21 @@ class NBAStatPredictorApp:
         # Initially hide the progress
         self.progress["value"] = 0
         
-        # Prediction history
+        # Prediction history - Make it bigger and show more details
         history_label = ttk.Label(self.input_inner_frame, text="Recent Predictions:", style="Title.TLabel")
         history_label.pack(anchor=tk.W, pady=(20, 10))
         
-        # Custom listbox frame with scrollbar
+        # Explanation label for clicking
+        click_info = ttk.Label(
+            self.input_inner_frame,
+            text="Click on a prediction to view its graph",
+            background=self.colors["bg_light"],
+            foreground=self.colors["accent"],
+            font=("Segoe UI", 9, "italic")
+        )
+        click_info.pack(anchor=tk.W, pady=(0, 5))
+        
+        # Custom listbox frame with scrollbar - make it bigger
         history_frame = ttk.Frame(self.input_inner_frame, style="CardFrame.TFrame")
         history_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -257,13 +270,17 @@ class NBAStatPredictorApp:
             selectforeground=self.colors["bg_white"],
             font=("Segoe UI", 10),
             borderwidth=1,
-            highlightthickness=0
+            highlightthickness=0,
+            height=10  # Make it taller
         )
         scrollbar = ttk.Scrollbar(history_frame, orient="vertical", command=self.result_list.yview)
         self.result_list.configure(yscrollcommand=scrollbar.set)
         
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.result_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Bind the click event to show historical plot
+        self.result_list.bind('<<ListboxSelect>>', self.show_historical_plot)
 
     def create_visualization_panel(self):
         self.viz_frame = ttk.Frame(self.content_frame, style="CardFrame.TFrame")
@@ -300,7 +317,7 @@ class NBAStatPredictorApp:
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # Add tips text
-        tips_text = "Tip: The graph shows individual simulation results. The average is shown in the prediction history."
+        tips_text = "Tip: The graph shows individual simulation results. Click on a prediction in the history to view its graph."
         tips_label = ttk.Label(self.viz_inner_frame, text=tips_text, style="Status.TLabel")
         tips_label.pack(anchor=tk.W, pady=(10, 0))
 
@@ -385,17 +402,40 @@ class NBAStatPredictorApp:
             # Complete the progress
             self.update_progress(100, "Complete!")
             
-            # Format the result
+            # Calculate additional stats
+            realistic_high_val = np.percentile(predictions, 90)
+            realistic_low_val = np.percentile(predictions, 5)
+            
+            # Format the result with realistic high and low values
             location_text = "Home" if home_game else "Away"
-            result_text = f"{player_name} vs {team_abbrev} ({location_text}): {prediction_mean:.1f} {stat}"
+            result_text = f"{player_name} vs {team_abbrev} ({location_text}): {prediction_mean:.1f} {stat} [H: {realistic_high_val:.1f}, L: {realistic_low_val:.1f}]"
             
             # Add to history list with timestamp
             import datetime
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            self.result_list.insert(0, f"[{timestamp}] {result_text}")
+            list_text = f"[{timestamp}] {result_text}"
+            self.result_list.insert(0, list_text)
+            
+            # Store prediction data for history
+            prediction_data = {
+                'player_name': player_name,
+                'stat': stat,
+                'team_abbrev': team_abbrev,
+                'home_game': home_game,
+                'prediction_mean': prediction_mean,
+                'predictions': predictions.copy(),  # Make a copy to ensure it's not modified
+                'realistic_high': realistic_high_val,
+                'realistic_low': realistic_low_val,
+                'timestamp': timestamp,
+                'list_text': list_text
+            }
+            
+            # Add to history (at the beginning)
+            self.prediction_history.insert(0, prediction_data)
             
             # Plot the results
-            self.plot_simulation_results(predictions, player_name, stat, team_abbrev, home_game)
+            self.plot_simulation_results(predictions, player_name, stat, team_abbrev, home_game, 
+                                        prediction_mean, realistic_high_val, realistic_low_val)
             
             # Update status
             self.status_label.configure(
@@ -418,7 +458,9 @@ class NBAStatPredictorApp:
             # Create fallback simulation data if there's an error with the prediction module
             try:
                 prediction_mean = 20.5 + np.random.normal(0, 3)
-                predictions = [prediction_mean + np.random.normal(0, 2) for _ in range(20)]
+                predictions = np.array([prediction_mean + np.random.normal(0, 2) for _ in range(20)])
+                realistic_high_val = np.percentile(predictions, 90)
+                realistic_low_val = np.percentile(predictions, 5)
                 
                 # Log that we're using fallback data
                 print("Using fallback simulation data.")
@@ -428,15 +470,35 @@ class NBAStatPredictorApp:
                 
                 # Format the result
                 location_text = "Home" if home_game else "Away"
-                result_text = f"{player_name} vs {team_abbrev} ({location_text}): {prediction_mean:.1f} {stat} (DEMO)"
+                result_text = f"{player_name} vs {team_abbrev} ({location_text}): {prediction_mean:.1f} {stat} [H: {realistic_high_val:.1f}, L: {realistic_low_val:.1f}] (DEMO)"
                 
                 # Add to history list with timestamp
                 import datetime
                 timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-                self.result_list.insert(0, f"[{timestamp}] {result_text}")
+                list_text = f"[{timestamp}] {result_text}"
+                self.result_list.insert(0, list_text)
+                
+                # Store prediction data for history
+                prediction_data = {
+                    'player_name': player_name,
+                    'stat': stat,
+                    'team_abbrev': team_abbrev,
+                    'home_game': home_game,
+                    'prediction_mean': prediction_mean,
+                    'predictions': predictions.copy(),
+                    'realistic_high': realistic_high_val,
+                    'realistic_low': realistic_low_val,
+                    'timestamp': timestamp,
+                    'list_text': list_text,
+                    'is_demo': True
+                }
+                
+                # Add to history (at the beginning)
+                self.prediction_history.insert(0, prediction_data)
                 
                 # Plot the results
-                self.plot_simulation_results(predictions, player_name, stat, team_abbrev, home_game)
+                self.plot_simulation_results(predictions, player_name, stat, team_abbrev, home_game, 
+                                            prediction_mean, realistic_high_val, realistic_low_val, is_demo=True)
                 
                 # Update status
                 self.status_label.configure(
@@ -451,7 +513,8 @@ class NBAStatPredictorApp:
             # Re-enable button
             self.predict_button.configure(state="normal")
             
-    def plot_simulation_results(self, predictions, player_name, stat, team_abbrev, home_game):
+    def plot_simulation_results(self, predictions, player_name, stat, team_abbrev, home_game, 
+                              mean_val=None, realistic_high_val=None, realistic_low_val=None, is_demo=False):
         # Clear previous plot
         self.ax.clear()
         
@@ -459,12 +522,16 @@ class NBAStatPredictorApp:
         x = range(1, len(predictions) + 1)
         self.ax.plot(x, predictions, marker='o', linestyle='-', color=self.colors["accent"], alpha=0.8, markersize=4)
         
-        # Calculate some stats for annotation
-        mean_val = np.mean(predictions)
+        # Calculate stats if not provided
+        if mean_val is None:
+            mean_val = np.mean(predictions)
+        if realistic_high_val is None:
+            realistic_high_val = np.percentile(predictions, 90)
+        if realistic_low_val is None:
+            realistic_low_val = np.percentile(predictions, 5)
+            
         max_val = np.max(predictions)
         min_val = np.min(predictions)
-        realistic_high_val = np.percentile(predictions, 90)
-        realistic_low_val = np.percentile(predictions, 5)
         
         # Add a horizontal lines for the mean, realistic high and low values
         self.ax.axhline(y=mean_val, color=self.colors["success"], linestyle='--', alpha=0.8)
@@ -506,8 +573,11 @@ class NBAStatPredictorApp:
         
         # Plot customization
         location_text = "Home" if home_game else "Away"
-        self.ax.set_title(f"{player_name}: {stat} vs {team_abbrev} ({location_text})", 
-                         color=self.colors["text"], fontsize=12, fontweight='bold')
+        title_text = f"{player_name}: {stat} vs {team_abbrev} ({location_text})"
+        if is_demo:
+            title_text += " (DEMO)"
+            
+        self.ax.set_title(title_text, color=self.colors["text"], fontsize=12, fontweight='bold')
         self.ax.set_xlabel("Simulation Number", color=self.colors["text_secondary"])
         self.ax.set_ylabel(stat, color=self.colors["text_secondary"])
         
@@ -532,6 +602,42 @@ class NBAStatPredictorApp:
         # Draw the updated plot
         self.fig.tight_layout()
         self.canvas.draw()
+        
+    def show_historical_plot(self, event):
+        """Show historical plot when a prediction is clicked in the history"""
+        # Get selected index
+        try:
+            selected_idx = self.result_list.curselection()[0]
+            
+            # Get the corresponding prediction data
+            prediction_data = self.prediction_history[selected_idx]
+            
+            # Update status
+            self.status_label.configure(
+                text=f"Showing historical prediction: {prediction_data['list_text']}", 
+                foreground=self.colors["accent"]
+            )
+            
+            # Recreate the plot using the stored data
+            self.plot_simulation_results(
+                prediction_data['predictions'],
+                prediction_data['player_name'],
+                prediction_data['stat'],
+                prediction_data['team_abbrev'],
+                prediction_data['home_game'],
+                prediction_data['prediction_mean'],
+                prediction_data['realistic_high'],
+                prediction_data['realistic_low'],
+                is_demo=prediction_data.get('is_demo', False)
+            )
+            
+        except (IndexError, KeyError) as e:
+            # This might happen if the list is empty or the data is missing
+            self.status_label.configure(
+                text="Error: Could not load the selected prediction.", 
+                foreground=self.colors["error"]
+            )
+            print(f"Error loading historical prediction: {str(e)}")
 
 # Main application entry point
 def main():
