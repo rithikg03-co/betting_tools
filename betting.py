@@ -94,4 +94,4 @@ def predict_weighted_player_stat(player_name, stat, opponent_team, home_game, n_
         
         simulation_results.append(predicted_stat)
     
-    return np.mean(simulation_results), simulation_results
+    return np.percentile(simulation_results,50), simulation_results
